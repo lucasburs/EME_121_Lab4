@@ -1,0 +1,159 @@
+function LAB4_EME
+%% Constants
+clc
+clear
+close all
+
+g = 9.8;
+M = 100/2.2; 
+w_0 = 2*pi*5;
+
+mr=M*.5*g/w_0^2; %The size of a CFG is typically specified as the product of the mass times the offset, i. e. mr
+r=4*.0254; %This is the offset, m
+m=mr/r;  %This is the mass of the CFG, kg 
+
+w_v=2*pi*12;  %This is defined frequency in vertical direction
+k_v=M*w_v^2; %N/m
+b_v=2*.005*w_v*M; %Ns/m
+
+w_h=2*pi*11; %This is a defined frequency in the horizontal direction 
+k_h=M*w_h^2; %N/m
+b_h=2*.005*w_h*M;  %Ns/m
+
+%Tau = Kp*(w_0 - omega)
+
+p = [M,w_0, mr, r, m, w_v, k_v, b_v, w_h, k_h, b_h];
+%% Initial Conditions
+x0 = ((M+m)*g)/k_v;
+y0 = 0;
+theta0 = 0;
+vx0 = 0;
+vy0 = 0;
+w0 = 0;
+x0 =[x0,y0,theta0,vx0,vy0,w0];
+
+%% Time vector
+
+%ts = 0:0.01:10;
+ts = linspace(0,10,2000);
+
+%% Input
+r = 0;
+
+fprintf('Checking punudulum:')
+pundulum(5,x0,r,p)
+
+f_anon = @(t,x) pundulum(t,x,r,p);
+
+%% Solve
+
+[ts, xs] = ode45(f_anon,ts,x0);
+
+x_pos = xs(:,1);
+y_pos = xs(:,2);
+theta_pos = xs(:,3);
+vx_vel = xs(:,4);
+vy_vel = xs(:,5)
+omega_vel = xs(:,6);
+
+
+dx = zeros(length(ts),6);
+ext = zeros(length(ts),6);
+
+for i=1:length(ts)
+    [dx(i,:),ext(i,:)] = pundulum(ts(i),xs(i,:),r,p);
+end
+
+T_nonlinear = ext(:,1);
+T_linear = ext(:,2);
+
+
+%% Plots
+figure
+plot(ts,x_pos)
+xlabel('Time, s')
+ylabel('X Position of Mass, m')
+grid on
+
+
+figure
+plot(ts,y_pos)
+xlabel('Time, s')
+ylabel('Y Position of Mass, m')
+grid on
+
+figure
+plot(ts,theta_pos)
+xlabel('Time, s')
+ylabel('Angular Velocity, rad/s')
+grid on
+
+
+
+end
+
+
+
+
+function [dx,ext] = pundulum(t,x,r,p)
+
+% t time
+% x = states vector
+% dx = derivative of the states
+% r = any input(s) to the system
+% p = vector of parameters
+
+% parameter unpack
+
+M = p(1);
+w_0 = p(2);
+mr = p(3);
+r = p(4);
+m = p(5);
+w_v = p(6);
+k_v = p(7);
+b_v = p(8);
+w_h = p(9);
+k_h = p(10);
+b_h = p(11);
+Kp = 10;
+g = 9.8;
+
+
+% State unpack
+x_n = x(1);
+y_n = x(2);
+theta = x(3);
+v_x = x(4);
+v_y = x(5);
+omega = x(6);
+
+
+%% Equations of Motion
+
+Tau = Kp*(w_0 - omega)
+
+
+L = [b_v, 0, -m*r*sin(theta), (M+m), 0, m*r*cos(theta); 0, b_h, -m*r*cos(theta), 0, (M+m), -m*r*sin(theta); 0, 0, 0, m*r*cos(theta), -m*r*sin(theta), m*r^2;1, 0, 0, 0 ,0 ,0;0, 1, 0, 0 ,0 ,0;0,0,1,0,0,0]
+R = [(-k_v*x_n) - (M+m)*g;-k_h*y_n; Tau - m*g*r*cos(theta);v_x;v_y;omega]
+
+deriv = inv(L)*R;
+
+d_x = deriv(1);
+d_y = deriv(2);
+dtheta = sqrt(deriv(3));
+vx_dot = deriv(4);
+vy_dot = deriv(5);
+omega_dot = deriv(6);
+
+    
+%% Packing the Derivatives 
+dx = [d_x;d_y; dtheta ; vx_dot; vy_dot; omega_dot];
+
+%% Extra outputs
+%T_nonlinear  = m*l*omega.^2 + m*g*cos(theta);
+%T_linear = m*l*omega.^2 + m*g;
+
+ext = [0,0,0,0,0,0];
+
+end
