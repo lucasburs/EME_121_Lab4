@@ -1,0 +1,66 @@
+%% Equations File "eqns_121lab3.m"
+
+function [ds, ext] = Lab4_EME121_eqs(t, s, p)
+
+% Input system parameters
+ 
+% t = time
+% s = states vector
+% ds = derivative of states
+% p = vector of parameters
+
+% Parameter unpack
+g = p(1);
+M = p(2);
+m = p(3);
+r = p(4);
+k_v = p(5);
+k_h = p(6);
+b_v = p(7);
+b_h = p(8);
+w_0 = p(9);
+
+% State Unpack
+Vx = s(1);
+Vy = s(2);
+omega = s(3);
+x = s(4);
+y  = s(5);
+theta = s(6);
+
+%   Proportional Controller:
+gain = .5;
+T_i = gain * ( w_0 - omega); % Input Torque
+
+
+%State Space Equations (Using Matrix)
+
+A_row1 = [M + m, 0, m*r*cos(theta)];
+A_row2 = [0, M+m, -m*r*sin(theta)];
+A_row3 = [m*r*cos(theta), -m*r*sin(theta), m*r^2];
+
+A = [A_row1; A_row2; A_row3];
+
+% Defining RHS of Matrix
+b_row1 = m*r*(omega^2)*sin(theta) - k_v*x - b_v*Vx - (M+m)*g;
+b_row2 = m*r*(omega^2)*cos(theta) -k_h*y -b_h*Vy;
+b_row3 = T_i - m*g*r*cos(theta);
+
+b = [b_row1; b_row2; b_row3];
+
+% Sovlving Matrix Equation to get derivative of states vector;
+ds = A\b;
+
+% Adding to ds the other 3 state derivative os state variables dx, dy,
+% dtheta:
+dx = Vx;
+dy = Vy;
+dtheta = omega;
+ds = [ds; dx; dy; dtheta]; % Output of Function
+
+
+
+% Preparing Extra Outputs
+ext = T_i; % Exporting Input Torque Data
+
+end
