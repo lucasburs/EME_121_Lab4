@@ -1,0 +1,144 @@
+%%    *Lab #4 : Circular Force Generator on an Elastic Foundation *
+%
+%                           Abhyuday Kaushik, Lucas Burstein, Raven Laddish
+%                                                             May. 22. 2019
+%
+%%
+%
+%
+%
+%
+%
+%
+%
+% 
+%
+%
+% 
+
+%% Master File "master_121lab3.m"
+
+% Cleanup
+clear all
+close all
+clc
+ 
+
+%% Input
+
+ 
+for ind = 1:3
+% Parmaters:
+w_0_vector = [10*pi, 24*pi, 40*pi]; % (rad/s)
+w_0 = w_0_vector(ind);
+
+
+g=9.8;
+M=100/2.2; %The large mass, kg
+mr=M*.5*g/w_0^2; %The size of a CFG is typically specified as the product of the mass 
+% times the offset, i. e. mr
+r=4*.0254; %This is the offset, m
+m=mr/r; %This is the mass of the CFG, kg
+
+
+w_v=2*pi*12; %This is defined frequency in vertical direction
+k_v=M*w_v^2; %N/m
+b_v=2*.005*w_v*M; %Ns/m
+
+
+w_h=2*pi*11; %This is a defined frequency in the horizontal direction
+k_h=M*w_h^2; %N/m
+b_h=2*.005*w_h*M; %Ns/m
+
+
+% Initial Conditions:
+x_0 = - ((M + m)* g) / k_v;
+y_0 = 0;
+theta_0 = 0;
+Vx_0 = 0;
+Vy_0 = 0;
+omega_0 = 0;
+
+p = [g, M, m, r, k_v, k_h, b_v, b_h,w_0]; % Packing Parameters
+s_0 = [Vx_0, Vy_0, omega_0, x_0, y_0, theta_0]; % Packing Initial Conditions
+
+%% Time Vector
+ts = linspace(0,10,1000);
+
+%% Creating Function Handle for input to ode45
+f_anon = @(t,s) Lab4_EME121_eqs(t, s, p); 
+% Only changing t and x and not r and p
+%% Solve
+[ts, xs] = ode45(f_anon, ts, s_0); 
+% solves ODEs from t0 to tf with an initial state of x0
+% xs is a matrix with initial conditions in the first row and then the
+% values until t = final time
+
+% Each Column is the solutions for a given variable at the different times
+omega = xs(:,3);
+Vx = xs(:,2);
+x = xs(:,4);
+y = xs(:,5);
+theta = xs(:,6);
+
+ds = zeros(length(ts), 6);
+ext = zeros(length(ts), 1);
+%This loop extracts information from the equation file (Input Torque)
+for i = 1:length(ts)
+  [ds(i,:),ext(i)] = Lab4_EME121_eqs(ts(i), xs(i,:), p);
+end
+
+
+T_i = ext;
+
+%% Calculating Power Requirements
+P = abs(T_i) .* omega;  % Using absolute value of torque
+
+%% Plots
+figure(ind)
+
+subplot(2,3,1)
+plot(ts,omega)
+grid on
+title('Angular Velocity Vs. Time')
+xlabel('Time (s)')
+ylabel('Angular Velocity (rad/s)')
+
+
+subplot(2,3,2)
+plot(ts, T_i)
+grid on
+title('Input Torque Vs. Time')
+xlabel('Time (s)')
+ylabel('Input Torque (N*m)')
+
+
+subplot(2,3,3)
+plot(ts, P)
+grid on
+title('Power Requirements Vs. Time')
+xlabel('Time (s)')
+ylabel('Power (W)')
+
+subplot(2,3,4)
+plot(ts, Vx)
+title('Vertical Velocity of Foundation Vx (m/s)')
+
+subplot(2,3,5)
+plot(ts, x)
+title('X Position Vs. Time')
+
+subplot(2,3,6)
+plot(ts,y)
+title('Y Position Vs. Time')
+
+
+suptitle(['Plots for Offset Mass Rotational Velocity of \omega_0 = ' num2str(w_0/pi) '\pi (Rad/sec)'])
+
+
+
+
+
+
+
+end
